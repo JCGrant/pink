@@ -1,23 +1,53 @@
 import pyglet
 
-window = pyglet.window.Window()
+import pygletreactor
+pygletreactor.install()
 
-class SocketEventDispatcher(pyglet.event.EventDispatcher):
-    def paint_pixel(self, coord, color):
-        self.dispatch_event('on_paint_pixel', coord, color)
-SocketEventDispatcher.register_event_type('on_paint_pixel')
-event_dispatcher = SocketEventDispatcher()
+from twisted.internet import reactor, task
+from twisted.internet.protocol import Factory
+from twisted.protocols.basic import LineReceiver
 
-@event_dispatcher.event
-def on_paint_pixel(coord, color):
-    pyglet.graphics.draw(1, pyglet.gl.GL_POINTS,
-        ('v2i', coord),
-        ('c3B', color)
-    )
+window = pyglet.window.Window(1000, 1000)
+batch = pyglet.graphics.Batch()
+
+vertex_list = pyglet.graphics.vertex_list(1000000, 'v2i', 'c3B')
 
 @window.event
 def on_draw():
     window.clear()
-    event_dispatcher.paint_pixel((20, 20), (255, 255, 255))
+    vertex_list.draw(pyglet.gl.GL_POINTS)
 
-pyglet.app.run()
+colors = {
+    'red': [255, 0, 0],
+    'green': [0, 255, 0],
+    'blue': [0, 0, 225],
+}
+
+class PixelServer(LineReceiver):
+    def __init__(self):
+        self.pixels = []
+
+    def connectionMade(self):
+        print("Connection received...")
+        print(self.transport.hostname)
+
+    def lineReceived(self, line):
+        print(line)
+        decoded_line = line.decode('utf-8')
+        x_str, y_str, color_str = str(decoded_line).split()
+        x, y, (r, g ,b) = int(x_str), int(y_str), colors[color_str]
+        vertex_list.vertices[(x + y * 1000) * 2] = x
+        vertex_list.vertices[(x + y * 1000) * 2 + 1] = y
+        vertex_list.colors[(x + y * 1000) * 3] = r
+        vertex_list.colors[(x + y * 1000) * 3 + 1] = g
+        vertex_list.colors[(x + y * 1000) * 3 + 2] = b
+        self.sendLine(b'ok')
+
+    def connectionLost(self, reason):
+        print("Connection lost...")
+
+factory = Factory()
+factory.protocol = PixelServer
+reactor.listenTCP(8000, factory)
+
+reactor.run()
