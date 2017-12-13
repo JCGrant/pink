@@ -7,10 +7,12 @@ from twisted.internet import reactor, task
 from twisted.internet.protocol import Factory
 from twisted.protocols.basic import LineReceiver
 
-window = pyglet.window.Window(1000, 1000)
+width, height = 1000, 1000
+
+window = pyglet.window.Window(width, height)
 batch = pyglet.graphics.Batch()
 
-vertex_list = pyglet.graphics.vertex_list(1000000, 'v2i', 'c3B')
+vertex_list = pyglet.graphics.vertex_list(width * height, 'v2i', 'c3B')
 
 @window.event
 def on_draw():
@@ -23,6 +25,14 @@ colors = {
     'blue': [0, 0, 225],
 }
 
+def set_color(x, y, color):
+    r, g, b = color
+    vertex_list.vertices[(x + y * height) * 2] = x
+    vertex_list.vertices[(x + y * height) * 2 + 1] = y
+    vertex_list.colors[(x + y * height) * 3] = r
+    vertex_list.colors[(x + y * height) * 3 + 1] = g
+    vertex_list.colors[(x + y * height) * 3 + 2] = b
+
 class PixelServer(LineReceiver):
     def __init__(self):
         self.pixels = []
@@ -32,16 +42,14 @@ class PixelServer(LineReceiver):
         print(self.transport.hostname)
 
     def lineReceived(self, line):
-        print(line)
-        decoded_line = line.decode('utf-8')
-        x_str, y_str, color_str = str(decoded_line).split()
-        x, y, (r, g ,b) = int(x_str), int(y_str), colors[color_str]
-        vertex_list.vertices[(x + y * 1000) * 2] = x
-        vertex_list.vertices[(x + y * 1000) * 2 + 1] = y
-        vertex_list.colors[(x + y * 1000) * 3] = r
-        vertex_list.colors[(x + y * 1000) * 3 + 1] = g
-        vertex_list.colors[(x + y * 1000) * 3 + 2] = b
-        self.sendLine(b'ok')
+        try:
+            decoded_line = line.decode('utf-8')
+            x_str, y_str, color_str = str(decoded_line).split()
+            set_color(int(x_str), int(y_str), colors[color_str])
+            self.sendLine(b'ok')
+        except Exception as e:
+            self.sendLine(b'error')
+            print('error:', e)
 
     def connectionLost(self, reason):
         print("Connection lost...")
