@@ -1,3 +1,5 @@
+import os
+
 import pyglet
 
 import pygletreactor
@@ -7,9 +9,11 @@ from twisted.internet import reactor, task
 from twisted.internet.protocol import Factory
 from twisted.protocols.basic import LineReceiver
 
-width, height = 1000, 1000
+width, height = int(os.environ.get('WIDTH', 1000)), int(os.environ.get('HEIGHT', 1000))
+is_fullscreen = os.environ.get('FULLSCREEN') == '1'
 
-window = pyglet.window.Window(width, height)
+window = pyglet.window.Window(width, height, fullscreen=is_fullscreen)
+
 batch = pyglet.graphics.Batch()
 
 vertex_list = pyglet.graphics.vertex_list(width * height, 'v2i', 'c3B')
@@ -47,6 +51,7 @@ class PixelServer(LineReceiver):
             x_str, y_str, color_str = str(decoded_line).split()
             set_color(int(x_str), int(y_str), colors[color_str])
             self.sendLine(b'ok')
+            print('ok', line)
         except Exception as e:
             self.sendLine(b'error')
             print('error:', e)
