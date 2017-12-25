@@ -24,9 +24,14 @@ def on_draw():
     vertex_list.draw(pyglet.gl.GL_POINTS)
 
 colors = {
-    'red': [255, 0, 0],
-    'green': [0, 255, 0],
+    'black': [0, 0, 0],
     'blue': [0, 0, 225],
+    'green': [0, 255, 0],
+    'aqua': [0, 255, 225],
+    'red': [255, 0, 0],
+    'magenta': [255, 0, 255],
+    'yellow': [255, 255, 0],
+    'white': [255, 255, 255],
 }
 
 def set_color(x, y, color):
