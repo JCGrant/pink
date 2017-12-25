@@ -38,9 +38,6 @@ def set_color(x, y, color):
     vertex_list.colors[(x + y * height) * 3 + 2] = b
 
 class PixelServer(LineReceiver):
-    def __init__(self):
-        self.pixels = []
-
     def connectionMade(self):
         print("Connection received...")
         print(self.transport.hostname)
